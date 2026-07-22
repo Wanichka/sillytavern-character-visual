@@ -504,7 +504,10 @@ function renderWardrobe(content, serial) {
                     <div class="cv-eyebrow"><span>&#10022;</span>${escapeHtml(t('wardrobe'))}<span>&#10022;</span></div>
                     <h2>${escapeHtml(t('chooseOutfit'))}</h2>
                 </div>
-                <button id="cv-back-editor" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
+                <div class="cv-editor-heading-actions">
+                    <button id="cv-add-outfits" class="cv-primary" type="button"><i class="fa-solid fa-images"></i><span>${escapeHtml(t('addOutfits'))}</span></button>
+                    <button id="cv-back-editor" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
+                </div>
             </div>
             <div class="cv-wardrobe-toolbar cv-section-card">
                 <select id="cv-folder-filter">${folderOptions(wardrobeFolder, true)}</select>
@@ -519,6 +522,7 @@ function renderWardrobe(content, serial) {
     `;
 
     content.querySelector('#cv-back-editor').addEventListener('click', () => switchView('editor'));
+    content.querySelector('#cv-add-outfits').addEventListener('click', addWardrobeOutfits);
     content.querySelector('#cv-folder-filter').addEventListener('change', (event) => {
         wardrobeFolder = event.target.value;
         wardrobeSearch = '';
@@ -689,6 +693,70 @@ function pickImageFile() {
         document.body.appendChild(input);
         input.click();
     });
+}
+
+function pickImageFiles() {
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/png,image/jpeg,image/webp,image/gif';
+        input.multiple = true;
+        input.style.display = 'none';
+        input.addEventListener('change', () => {
+            resolve(input.files ? Array.from(input.files) : []);
+            input.remove();
+        }, { once: true });
+        document.body.appendChild(input);
+        input.click();
+    });
+}
+
+// Bulk-adds outfits straight into the wardrobe from selected photos, without
+// touching the current chat. Fields stay empty; the temporary name comes from
+// the file name and can be renamed later per card.
+async function addWardrobeOutfits() {
+    if (!library) return;
+    const files = await pickImageFiles();
+    if (!files.length) return;
+
+    const folderId = wardrobeFolder !== 'all' && library.folders.some((folder) => folder.id === wardrobeFolder)
+        ? wardrobeFolder
+        : library.folders[0].id;
+
+    let added = 0;
+    for (const file of files) {
+        if (file.size > MAX_IMAGE_BYTES) {
+            toast('warning', t('imageTooLarge'));
+            continue;
+        }
+        try {
+            const thumbnail = await createThumbnail(file);
+            const imageId = createId('image');
+            await storage.putImage(imageId, file, thumbnail);
+            const now = new Date().toISOString();
+            const baseName = String(file.name || '').replace(/\.[^.]+$/, '').trim() || t('unsavedOutfit');
+            library.outfits.push({
+                id: createId('outfit'),
+                name: baseName,
+                folderId,
+                imageId,
+                fields: {},
+                createdAt: now,
+                updatedAt: now,
+            });
+            added += 1;
+        } catch (error) {
+            console.error('[Character Visual] Add wardrobe outfit failed:', error);
+            toast('error', t('imageFailed'));
+        }
+    }
+
+    if (added) {
+        library = await storage.saveLibrary(library);
+        wardrobeSearch = '';
+        toast('success', t('outfitsAdded'));
+        renderPanel();
+    }
 }
 
 async function pickCurrentImage() {
