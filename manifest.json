@@ -1,0 +1,11 @@
+{
+    "display_name": "Character Visual",
+    "loading_order": 25,
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Wani",
+    "version": "1.0.0",
+    "auto_update": false,
+    "minimum_client_version": "1.13.0"
+    "homePage": https://github.com/Wanichka/sillytavern-character-visual"
+}
