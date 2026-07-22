@@ -28,6 +28,8 @@
     flex-direction: column;
     overflow: hidden;
     box-sizing: border-box;
+    container-type: inline-size;
+    container-name: cvpanel;
     min-width: 560px;
     min-height: 480px;
     color: var(--cv-text);
@@ -962,7 +964,9 @@
     #cv-panel {
         min-width: 440px;
     }
+}
 
+@container cvpanel (max-width: 760px) {
     .cv-editor-grid,
     .cv-settings-grid {
         grid-template-columns: 1fr;
