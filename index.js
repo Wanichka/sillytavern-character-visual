@@ -133,7 +133,7 @@ function loadSettings() {
             builtIn: !!field.builtIn,
             labels: {
                 en: String(field.labels?.en || field.label || field.id || 'Field'),
-                ru: String(field.labels?.ru || field.label || field.labels?.en || field.id || 'Поле'),
+                ru: String(field.labels?.ru || field.label || field.labels?.en || field.id || 'РџРѕР»Рµ'),
             },
         }));
     }
@@ -359,33 +359,40 @@ function renderEditor(content, serial) {
             <span class="cv-field-icon"><i class="${escapeHtml(field.icon)}"></i></span>
             <span class="cv-field-main">
                 <span class="cv-field-label">${escapeHtml(fieldLabel(field))}</span>
-                <textarea class="cv-field-input" rows="1" spellcheck="true" placeholder="—">${escapeHtml(activeState.fields?.[field.id] || '')}</textarea>
+                <textarea class="cv-field-input" rows="1" spellcheck="true" placeholder="вЂ”">${escapeHtml(activeState.fields?.[field.id] || '')}</textarea>
             </span>
             <i class="fa-solid fa-pencil cv-field-pencil" aria-hidden="true"></i>
         </label>
     `).join('');
 
+    const previewCorners = `
+        <span class="cv-preview-corner cv-preview-corner-tl" aria-hidden="true">вќ¦</span>
+        <span class="cv-preview-corner cv-preview-corner-tr" aria-hidden="true">вќ¦</span>
+        <span class="cv-preview-corner cv-preview-corner-bl" aria-hidden="true">вќ¦</span>
+        <span class="cv-preview-corner cv-preview-corner-br" aria-hidden="true">вќ¦</span>
+    `;
+
     const imageMarkup = activeState.imageId
-        ? `<div class="cv-preview-frame cv-image-loading"><img id="cv-current-image" alt=""><span class="cv-image-spinner"><i class="fa-solid fa-spinner fa-spin"></i></span></div>`
-        : `<div class="cv-preview-frame cv-preview-empty"><i class="fa-regular fa-image"></i><span>${escapeHtml(t('noImage'))}</span></div>`;
+        ? `<div class="cv-preview-frame cv-image-loading">${previewCorners}<img id="cv-current-image" alt=""><span class="cv-image-spinner"><i class="fa-solid fa-spinner fa-spin"></i></span></div>`
+        : `<div class="cv-preview-frame cv-preview-empty">${previewCorners}<i class="fa-regular fa-image"></i><span>${escapeHtml(t('noImage'))}</span></div>`;
 
     content.innerHTML = `
         <div class="cv-editor-shell">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>✦</span>${escapeHtml(t('editor'))}<span>✦</span></div>
+                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('editor'))}<span>вњ¦</span></div>
                     <h2>${escapeHtml(name)}</h2>
                 </div>
                 <button id="cv-open-wardrobe" class="cv-primary" type="button"><i class="fa-solid fa-door-open"></i>${escapeHtml(t('chooseOutfit'))}</button>
             </div>
             <div class="cv-editor-grid">
                 <section class="cv-editor-fields cv-section-card">
-                    <div class="cv-section-title"><span class="cv-flourish">❦</span>${escapeHtml(t('outfitDetails'))}</div>
+                    <div class="cv-section-title"><span class="cv-flourish">вќ¦</span>${escapeHtml(t('outfitDetails'))}</div>
                     <div class="cv-field-list">${fieldCards}</div>
                     <div class="cv-hint">${escapeHtml(t('currentChatHint'))}</div>
                 </section>
                 <section class="cv-preview-section cv-section-card">
-                    <div class="cv-section-title cv-centered"><span>✦</span>${escapeHtml(t('preview'))}<span>✦</span></div>
+                    <div class="cv-section-title cv-centered"><span>вњ¦</span>${escapeHtml(t('preview'))}<span>вњ¦</span></div>
                     ${imageMarkup}
                     <div class="cv-preview-actions">
                         <button id="cv-upload-image" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-up-from-bracket"></i>${escapeHtml(activeState.imageId ? t('replaceImage') : t('uploadImage'))}</button>
@@ -393,7 +400,7 @@ function renderEditor(content, serial) {
                     </div>
                 </section>
             </div>
-            <div class="cv-ornament-divider"><span>✦</span></div>
+            <div class="cv-ornament-divider"><span>вњ¦</span></div>
             <div class="cv-editor-actions">
                 <button id="cv-save-outfit" class="cv-primary" type="button"><i class="fa-solid fa-floppy-disk"></i>${escapeHtml(activeState.outfitId ? t('updateOutfit') : t('saveOutfit'))}</button>
                 <button id="cv-save-as-new" class="cv-secondary" type="button"><i class="fa-solid fa-copy"></i>${escapeHtml(t('saveAsNew'))}</button>
@@ -485,7 +492,7 @@ function renderWardrobe(content, serial) {
         <div class="cv-wardrobe-shell">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>✦</span>${escapeHtml(t('wardrobe'))}<span>✦</span></div>
+                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('wardrobe'))}<span>вњ¦</span></div>
                     <h2>${escapeHtml(t('chooseOutfit'))}</h2>
                 </div>
                 <button id="cv-back-editor" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
@@ -548,7 +555,7 @@ function renderSettings(content) {
         <div class="cv-settings-shell">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>✦</span>${escapeHtml(t('settings'))}<span>✦</span></div>
+                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('settings'))}<span>вњ¦</span></div>
                     <h2>${escapeHtml(t('title'))}</h2>
                 </div>
                 <button id="cv-settings-back" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
@@ -719,7 +726,7 @@ async function formDialog({ title, fields, confirmLabel = t('save') }) {
         }).join('');
         overlay.innerHTML = `
             <div class="cv-dialog-box" role="dialog" aria-modal="true">
-                <div class="cv-dialog-ornament">✦</div>
+                <div class="cv-dialog-ornament">вњ¦</div>
                 <h3>${escapeHtml(title)}</h3>
                 ${rows}
                 <div class="cv-dialog-actions">
@@ -940,8 +947,8 @@ async function editField(fieldId) {
     const values = await formDialog({
         title: t('rename'),
         fields: [
-            { id: 'ru', label: `${t('fieldName')} — RU`, value: field.labels.ru },
-            { id: 'en', label: `${t('fieldName')} — EN`, value: field.labels.en },
+            { id: 'ru', label: `${t('fieldName')} вЂ” RU`, value: field.labels.ru },
+            { id: 'en', label: `${t('fieldName')} вЂ” EN`, value: field.labels.en },
         ],
     });
     if (!values || (!values.ru && !values.en)) return;
@@ -956,8 +963,8 @@ async function addField() {
         title: t('addField'),
         confirmLabel: t('create'),
         fields: [
-            { id: 'ru', label: `${t('fieldName')} — RU`, value: '' },
-            { id: 'en', label: `${t('fieldName')} — EN`, value: '' },
+            { id: 'ru', label: `${t('fieldName')} вЂ” RU`, value: '' },
+            { id: 'en', label: `${t('fieldName')} вЂ” EN`, value: '' },
         ],
     });
     if (!values || (!values.ru && !values.en)) return;
@@ -1266,8 +1273,14 @@ function createMainUi() {
     panel.id = 'cv-panel';
     panel.style.display = 'none';
     panel.innerHTML = `
+        <div class="cv-panel-ornaments" aria-hidden="true">
+            <span class="cv-panel-ornament cv-panel-ornament-tl">вќ¦</span>
+            <span class="cv-panel-ornament cv-panel-ornament-tr">вќ¦</span>
+            <span class="cv-panel-ornament cv-panel-ornament-bl">вќ¦</span>
+            <span class="cv-panel-ornament cv-panel-ornament-br">вќ¦</span>
+        </div>
         <header id="cv-header">
-            <div class="cv-header-brand"><span class="cv-header-ornament">❦</span><span id="cv-title">${escapeHtml(t('title'))}</span></div>
+            <div class="cv-header-brand"><span class="cv-header-ornament">вќ¦</span><span id="cv-title">${escapeHtml(t('title'))}</span></div>
             <nav id="cv-header-actions">
                 <button id="cv-nav-editor" class="cv-nav-button cv-active" data-view="editor" type="button" title="${escapeHtml(t('editor'))}"><i class="fa-solid fa-shirt"></i></button>
                 <button id="cv-nav-wardrobe" class="cv-nav-button" data-view="wardrobe" type="button" title="${escapeHtml(t('wardrobe'))}"><i class="fa-solid fa-door-open"></i></button>
