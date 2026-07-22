@@ -1,4 +1,4 @@
-/* Character Visual вЂ” theme-aware wardrobe styles.
+/* Character Visual - theme-aware wardrobe styles.
    The structure follows Character Thoughts / Relationship Memory Tracker.
    Decorative lines and ornaments borrow the mood of the concept art while
    every colour continues to follow the active SillyTavern theme. */
@@ -28,10 +28,10 @@
     flex-direction: column;
     overflow: hidden;
     box-sizing: border-box;
-    container-type: inline-size;
+    container-type: size;
     container-name: cvpanel;
-    min-width: 560px;
-    min-height: 480px;
+    min-width: 320px;
+    min-height: 300px;
     color: var(--cv-text);
     background:
         radial-gradient(circle at 9% 7%, color-mix(in srgb, var(--cv-accent) 9%, transparent), transparent 25%),
@@ -89,8 +89,7 @@
 }
 
 .cv-header-ornament {
-    opacity: 0.45;
-    font-size: 18px;
+    display: none;
 }
 
 #cv-header-actions {
@@ -234,7 +233,9 @@
 }
 
 .cv-flourish {
-    font-size: 17px;
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.78;
 }
 
 .cv-field-list {
@@ -349,40 +350,54 @@
     overflow: hidden;
     margin: 0 0 13px;
     border: 1px solid var(--cv-border);
-    border-radius: 28px 28px 13px 13px;
+    border-radius: 20px 20px 14px 14px;
     background:
-        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 75%),
-        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 75%),
-        color-mix(in srgb, var(--cv-bg), var(--cv-text) 3%);
-    background-position: 0 0, 10px 10px;
-    background-size: 20px 20px;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.23), 0 0 24px color-mix(in srgb, var(--cv-accent) 7%, transparent);
+        radial-gradient(ellipse at 50% 36%, color-mix(in srgb, var(--cv-accent) 6%, transparent), transparent 62%),
+        color-mix(in srgb, var(--cv-bg), #000 7%);
+    box-shadow: inset 0 0 46px rgba(0, 0, 0, 0.30), 0 0 22px color-mix(in srgb, var(--cv-accent) 9%, transparent);
 }
 
 .cv-preview-frame::before,
 .cv-preview-frame::after {
+    content: "";
     position: absolute;
     z-index: 2;
-    color: color-mix(in srgb, var(--cv-accent) 62%, transparent);
-    font-family: Georgia, serif;
-    font-size: 23px;
-    line-height: 1;
-    text-shadow: 0 0 8px var(--cv-shadow);
+    pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 42%, transparent);
+    border-radius: 15px 15px 10px 10px;
 }
 
 .cv-preview-frame::before {
-    content: "вќ¦";
-    left: 13px;
-    top: 11px;
-    transform: rotate(-28deg);
+    inset: 7px;
 }
 
 .cv-preview-frame::after {
-    content: "вќ¦";
-    right: 13px;
-    bottom: 11px;
-    transform: rotate(152deg);
+    inset: 13px;
+    border-color: color-mix(in srgb, var(--cv-accent) 16%, transparent);
+    border-radius: 12px 12px 8px 8px;
 }
+
+/* Delicate corner flourishes (injected by the editor as .cv-preview-corner). */
+.cv-preview-corner {
+    position: absolute;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: color-mix(in srgb, var(--cv-accent) 70%, transparent);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    line-height: 1;
+    opacity: 0.55;
+}
+
+.cv-preview-corner-tl { top: 6px; left: 8px; transform: rotate(-32deg); }
+.cv-preview-corner-tr { top: 6px; right: 8px; transform: rotate(32deg); }
+.cv-preview-corner-bl { bottom: 6px; left: 8px; transform: rotate(-148deg); }
+.cv-preview-corner-br { right: 8px; bottom: 6px; transform: rotate(148deg); }
 
 .cv-preview-frame img {
     position: relative;
@@ -647,7 +662,7 @@
 
 .cv-wardrobe-thumb::before,
 .cv-wardrobe-thumb::after {
-    content: "вњ¦";
+    content: "\2726";
     position: absolute;
     z-index: 2;
     color: color-mix(in srgb, var(--cv-accent) 37%, transparent);
@@ -962,10 +977,11 @@
 
 @media (max-width: 760px) {
     #cv-panel {
-        min-width: 440px;
+        min-width: 320px;
     }
 }
 
+/* Responsiveness keyed to the PANEL's own size, not the browser window. */
 @container cvpanel (max-width: 760px) {
     .cv-editor-grid,
     .cv-settings-grid {
@@ -982,7 +998,7 @@
     }
 
     .cv-preview-frame {
-        min-height: 380px;
+        min-height: 340px;
     }
 
     .cv-wardrobe-toolbar {
@@ -990,313 +1006,71 @@
     }
 }
 
-/* -------------------------------------------------------------------------
-   Decorative restoration layer
-   Keeps the current editor/wardrobe structure while restoring the richer
-   framing, depth and botanical details from the approved visual concept.
-   ------------------------------------------------------------------------- */
-
-#cv-panel,
-#cv-button,
-.cv-dialog-overlay,
-#cv-extension-settings {
-    --cv-border: color-mix(in srgb, var(--cv-accent) 64%, transparent);
-    --cv-soft-border: color-mix(in srgb, var(--cv-accent) 27%, color-mix(in srgb, var(--cv-text) 12%, transparent));
-    --cv-muted: color-mix(in srgb, var(--cv-text) 68%, transparent);
-    --cv-glow: color-mix(in srgb, var(--cv-accent) 18%, transparent);
-}
-
-#cv-panel {
-    background:
-        radial-gradient(ellipse at 6% 4%, color-mix(in srgb, var(--cv-accent) 15%, transparent), transparent 27%),
-        radial-gradient(ellipse at 94% 96%, color-mix(in srgb, var(--cv-accent) 11%, transparent), transparent 30%),
-        linear-gradient(135deg, color-mix(in srgb, var(--cv-bg), var(--cv-text) 4%), var(--cv-bg) 46%, color-mix(in srgb, var(--cv-bg), #000 8%)),
-        var(--cv-bg);
-    border-color: color-mix(in srgb, var(--cv-accent) 76%, transparent);
-    border-radius: 19px;
-    box-shadow:
-        0 22px 70px var(--cv-shadow),
-        0 0 28px color-mix(in srgb, var(--cv-accent) 13%, transparent),
-        inset 0 0 58px rgba(0, 0, 0, 0.13);
-}
-
-#cv-panel::before {
-    inset: 6px;
-    border-color: color-mix(in srgb, var(--cv-accent) 31%, transparent);
-    border-radius: 14px;
-}
-
-.cv-panel-ornaments {
-    position: absolute;
-    inset: 0;
-    z-index: 7;
-    pointer-events: none;
-    color: color-mix(in srgb, var(--cv-accent) 69%, transparent);
-    font-family: Georgia, "Times New Roman", serif;
-    text-shadow: 0 0 12px var(--cv-glow);
-}
-
-.cv-panel-ornament {
-    position: absolute;
-    font-size: 27px;
-    line-height: 1;
-    opacity: 0.7;
-}
-
-.cv-panel-ornament-tl { top: 7px; left: 9px; transform: rotate(-32deg); }
-.cv-panel-ornament-tr { top: 7px; right: 9px; transform: rotate(58deg); }
-.cv-panel-ornament-bl { bottom: 7px; left: 9px; transform: rotate(-122deg); }
-.cv-panel-ornament-br { right: 9px; bottom: 7px; transform: rotate(148deg); }
-
-#cv-header {
-    min-height: 76px;
-    padding: 12px 20px 12px 29px;
-    background:
-        linear-gradient(90deg, color-mix(in srgb, var(--cv-accent) 6%, transparent), transparent 28%),
-        color-mix(in srgb, var(--cv-layer-1) 91%, transparent);
-    border-bottom-color: color-mix(in srgb, var(--cv-accent) 57%, transparent);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-}
-
-.cv-header-brand {
-    gap: 12px;
-    font-size: clamp(22px, 2.3vw, 32px);
-    text-shadow: 0 0 17px color-mix(in srgb, var(--cv-accent) 28%, transparent);
-}
-
-.cv-header-ornament {
-    opacity: 0.82;
-    font-size: 29px;
-    transform: rotate(-17deg);
-}
-
-#cv-header-actions button {
-    width: 43px;
-    height: 43px;
-    border-radius: 12px;
-    font-size: 16px;
-}
-
-#cv-content {
-    padding: 22px 25px 27px;
-}
-
-.cv-editor-heading {
-    margin-bottom: 18px;
-}
-
-.cv-editor-heading h2 {
-    font-size: 19px;
-}
-
-.cv-eyebrow {
-    font-size: 14px;
-}
-
-.cv-editor-grid {
-    gap: 18px;
-}
-
-.cv-section-card {
-    border-color: color-mix(in srgb, var(--cv-accent) 34%, transparent);
-    border-radius: 16px;
-    background:
-        radial-gradient(circle at 100% 0, color-mix(in srgb, var(--cv-accent) 7%, transparent), transparent 32%),
-        linear-gradient(145deg, color-mix(in srgb, var(--cv-layer-1) 94%, transparent), color-mix(in srgb, var(--cv-bg) 93%, transparent));
-    box-shadow:
-        inset 0 0 28px rgba(0, 0, 0, 0.09),
-        0 8px 20px rgba(0, 0, 0, 0.07);
-}
-
-.cv-section-card::after {
-    border-color: color-mix(in srgb, var(--cv-accent) 15%, transparent);
-    border-radius: 12px;
-}
-
-.cv-editor-fields,
-.cv-preview-section {
-    padding: 20px;
-}
-
-.cv-section-title {
-    margin: 0 3px 18px;
-    font-size: 19px;
-}
-
-.cv-section-title.cv-centered span {
-    font-size: 10px;
-    text-shadow: 0 0 9px var(--cv-glow);
-}
-
-.cv-flourish {
-    font-size: 22px;
-    text-shadow: 0 0 9px var(--cv-glow);
-}
-
-.cv-field-list {
-    gap: 11px;
-}
-
-.cv-field-card {
-    grid-template-columns: 48px minmax(0, 1fr) 20px;
-    gap: 12px;
-    min-height: 68px;
-    padding: 10px 13px;
-    border-color: color-mix(in srgb, var(--cv-accent) 26%, transparent);
-    border-radius: 13px;
-    background:
-        linear-gradient(105deg, color-mix(in srgb, var(--cv-accent) 4%, transparent), transparent 40%),
-        var(--cv-layer-1);
-    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.05);
-    transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
-}
-
-.cv-field-card:focus-within {
-    box-shadow: 0 0 15px color-mix(in srgb, var(--cv-accent) 8%, transparent);
-}
-
-.cv-field-icon {
-    width: 44px;
-    height: 44px;
-    background:
-        radial-gradient(circle, color-mix(in srgb, var(--cv-accent) 10%, transparent), transparent 72%),
-        color-mix(in srgb, var(--cv-bg), var(--cv-accent) 5%);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--cv-accent) 6%, transparent);
-}
-
-.cv-field-label {
-    font-size: 13px;
-}
-
-.cv-field-input {
-    min-height: 34px;
-    font-size: 14px;
-}
-
-.cv-field-pencil,
-.cv-hint {
-    font-size: 12px;
-}
-
-.cv-hint {
-    margin: 14px 2px 0;
-}
-
-.cv-preview-frame {
-    min-height: 350px;
-    margin-bottom: 16px;
-    border-color: color-mix(in srgb, var(--cv-accent) 76%, transparent);
-    border-radius: 43px 43px 18px 18px;
-    background:
-        radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--cv-text) 4%, transparent), transparent 61%),
-        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 54%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 54%, transparent) 75%),
-        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 54%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 54%, transparent) 75%),
-        color-mix(in srgb, var(--cv-bg), var(--cv-text) 2%);
-    background-position: center, 0 0, 8px 8px, center;
-    background-size: auto, 16px 16px, 16px 16px, auto;
-    box-shadow:
-        inset 0 0 54px rgba(0, 0, 0, 0.31),
-        0 0 25px color-mix(in srgb, var(--cv-accent) 11%, transparent);
-}
-
-.cv-preview-frame::before,
-.cv-preview-frame::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    transform: none;
-    color: transparent;
-}
-
-.cv-preview-frame::before {
-    inset: 8px;
-    z-index: 3;
-    border: 1px solid color-mix(in srgb, var(--cv-accent) 49%, transparent);
-    border-radius: 35px 35px 13px 13px;
-}
-
-.cv-preview-frame::after {
-    inset: 15px;
-    z-index: 3;
-    border: 1px solid color-mix(in srgb, var(--cv-accent) 17%, transparent);
-    border-radius: 29px 29px 10px 10px;
-}
-
-.cv-preview-corner {
-    position: absolute;
-    z-index: 4;
-    width: 52px;
-    height: 52px;
+/* Explicit preview show/hide. */
+.cv-editor-heading-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: color-mix(in srgb, var(--cv-accent) 75%, transparent);
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 29px;
-    line-height: 1;
-    pointer-events: none;
-    text-shadow: 0 0 9px var(--cv-glow);
+    justify-content: flex-end;
+    gap: 8px;
 }
 
-.cv-preview-corner::after {
-    content: "вњ¦";
-    position: absolute;
-    color: color-mix(in srgb, var(--cv-accent) 47%, transparent);
-    font-size: 8px;
+.cv-preview-hidden .cv-preview-section {
+    display: none;
 }
 
-.cv-preview-corner-tl { top: 5px; left: 6px; transform: rotate(-37deg); }
-.cv-preview-corner-tr { top: 5px; right: 6px; transform: rotate(53deg); }
-.cv-preview-corner-bl { bottom: 5px; left: 6px; transform: rotate(-127deg); }
-.cv-preview-corner-br { right: 6px; bottom: 5px; transform: rotate(143deg); }
-
-.cv-preview-frame img {
-    z-index: 2;
+.cv-preview-hidden .cv-editor-grid {
+    grid-template-columns: minmax(0, 1fr);
 }
 
-.cv-preview-empty {
-    gap: 11px;
-    font-size: 13px;
-}
-
-.cv-preview-empty > i {
-    font-size: 46px;
-    text-shadow: 0 0 15px var(--cv-glow);
-}
-
-.cv-primary,
-.cv-secondary,
-.cv-ghost-danger {
-    min-height: 43px;
-    padding: 8px 15px;
-    border-radius: 12px;
-    font-size: 13px;
-}
-
-.cv-primary,
-.cv-primary-small {
-    box-shadow:
-        0 0 18px color-mix(in srgb, var(--cv-accent) 15%, transparent),
-        inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
-}
-
-.cv-ornament-divider {
-    margin: 18px 4px 15px;
-    opacity: 0.88;
-}
-
-.cv-ornament-divider span {
-    font-size: 11px;
-    text-shadow: 0 0 9px var(--cv-glow);
-}
-
-@container cvpanel (max-width: 760px) {
-    #cv-content {
-        padding: 18px 20px 23px;
-    }
-
+/* Compact layout for small panels. */
+@container cvpanel (max-width: 680px) {
+    #cv-header { min-height: 56px; padding: 7px 9px 7px 15px; }
+    .cv-header-brand { gap: 7px; max-width: calc(100% - 150px); font-size: 19px; }
+    #cv-header-actions { gap: 4px; }
+    #cv-header-actions button { width: 35px; height: 35px; border-radius: 9px; font-size: 13px; }
+    #cv-content { padding: 11px 12px 15px; }
+    .cv-editor-heading { align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .cv-editor-heading h2 { margin-top: 1px; font-size: 16px; }
+    .cv-eyebrow { gap: 5px; font-size: 11px; }
+    .cv-editor-heading-actions { margin-left: auto; gap: 6px; }
+    .cv-editor-heading-actions .cv-primary,
+    .cv-editor-heading-actions .cv-secondary { min-height: 34px; padding: 5px 9px; border-radius: 9px; font-size: 11px; }
     .cv-editor-fields,
-    .cv-preview-section {
-        padding: 17px;
-    }
+    .cv-preview-section { padding: 11px; border-radius: 12px; }
+    .cv-section-title { gap: 6px; margin: 0 2px 9px; font-size: 15px; }
+    .cv-field-list { gap: 6px; }
+    .cv-field-card { grid-template-columns: 36px minmax(0, 1fr) 14px; gap: 7px; padding: 6px 8px; border-radius: 9px; }
+    .cv-field-icon { width: 34px; height: 34px; font-size: 12px; }
+    .cv-field-label { font-size: 11px; }
+    .cv-field-input { min-height: 22px; padding: 1px 0; font-size: 12px; line-height: 1.25; }
+    .cv-hint { margin: 8px 2px 0; font-size: 10px; line-height: 1.3; }
+    .cv-preview-frame { min-height: 220px; }
+    .cv-editor-actions { flex-wrap: wrap; gap: 6px; }
+    .cv-editor-actions > button:not(.cv-ghost-danger) { flex: 1 1 130px; }
+    .cv-ghost-danger { flex: 1 1 150px; margin-left: 0; }
+}
+
+@container cvpanel (max-width: 430px) {
+    .cv-header-brand { max-width: calc(100% - 132px); font-size: 16px; }
+    #cv-header-actions button { width: 31px; height: 31px; font-size: 12px; }
+    #cv-content { padding: 8px 8px 11px; }
+    .cv-editor-heading-actions { width: 100%; }
+    .cv-editor-heading-actions > button { flex: 1; }
+    #cv-toggle-preview span { display: none; }
+    .cv-field-card { grid-template-columns: 32px minmax(0, 1fr) 12px; padding: 4px 6px; }
+    .cv-field-icon { width: 30px; height: 30px; font-size: 11px; }
+    .cv-preview-frame { min-height: 170px; }
+    .cv-setting-field { grid-template-columns: 27px minmax(65px, 1fr) 27px 27px 27px 27px; gap: 3px; }
+}
+
+@container cvpanel (max-height: 540px) {
+    #cv-header { min-height: 52px; padding-block: 5px; }
+    #cv-content { padding-top: 8px; padding-bottom: 10px; }
+    .cv-editor-heading { margin-bottom: 7px; }
+    .cv-editor-fields,
+    .cv-preview-section { padding-block: 9px; }
+    .cv-section-title { margin-bottom: 7px; }
+    .cv-field-list { gap: 5px; }
+    .cv-field-card { padding-block: 4px; }
+    .cv-hint { margin-top: 6px; }
 }
