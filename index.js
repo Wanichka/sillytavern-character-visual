@@ -7,7 +7,8 @@ import {
 import { createStorage } from './storage.js';
 
 const DEFAULT_PANEL_SIZE = Object.freeze({ width: 900, height: 680 });
-const MIN_PANEL_SIZE = Object.freeze({ width: 560, height: 480 });
+const MIN_PANEL_SIZE = Object.freeze({ width: 320, height: 300 });
+const COMPACT_PANEL_WIDTH = 440;
 const DRAG_EDGE = 10;
 const DRAG_TOP = 76;
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
@@ -22,6 +23,7 @@ let activeState = emptyState();
 let activeLoadSerial = 0;
 let renderSerial = 0;
 let currentView = 'editor';
+let previewVisible = true;
 let wardrobeFolder = 'all';
 let wardrobeSearch = '';
 let saveStateTimer = null;
@@ -107,8 +109,10 @@ function getDefaultSettings() {
         uiLanguage: 'auto',
         promptLanguage: 'en',
         showFloatingButton: true,
+        previewVisible: true,
         panelPosition: null,
         panelSize: { ...DEFAULT_PANEL_SIZE },
+        expandedWidth: DEFAULT_PANEL_SIZE.width,
         buttonPosition: null,
         fields: cloneDefaultFields(),
     };
@@ -133,7 +137,7 @@ function loadSettings() {
             builtIn: !!field.builtIn,
             labels: {
                 en: String(field.labels?.en || field.label || field.id || 'Field'),
-                ru: String(field.labels?.ru || field.label || field.labels?.en || field.id || 'РџРѕР»Рµ'),
+                ru: String(field.labels?.ru || field.label || field.labels?.en || field.id || '\u041f\u043e\u043b\u0435'),
             },
         }));
     }
@@ -228,9 +232,6 @@ async function loadActiveChatState() {
 
 async function saveActiveState() {
     if (!activeChatKey) return;
-    // Cancel any pending debounced write so a stale snapshot scheduled by an
-    // earlier keystroke cannot overwrite this authoritative save afterwards.
-    clearTimeout(saveStateTimer);
     try {
         await storage.saveChatState(activeChatKey, activeState);
     } catch (error) {
@@ -259,59 +260,64 @@ function revokeObjectUrls() {
     objectUrls.clear();
 }
 
-// Fire-and-forget cleanup of image blobs no longer referenced by any outfit or
-// chat snapshot. Must only be called after the relevant state has already been
-// persisted (awaited saveActiveState / saveLibrary), so it never runs on the
-// UI's critical path and never deletes an image that is still in use.
-function runImageGc() {
-    storage?.collectGarbage?.()
-        .then((removed) => {
-            if (removed) console.log(`[Character Visual] Removed ${removed} orphaned image(s).`);
-        })
-        .catch((error) => console.error('[Character Visual] Image cleanup failed:', error));
-}
-
-function markImageMissing(img) {
-    const frame = img.closest('.cv-preview-frame, .cv-wardrobe-thumb');
-    if (!frame) return;
-    frame.classList.remove('cv-image-loading');
-    if (frame.classList.contains('cv-preview-frame')) {
-        frame.classList.add('cv-preview-empty');
-        frame.innerHTML = `<i class="fa-regular fa-image"></i><span>${escapeHtml(t('noImage'))}</span>`;
-    } else {
-        frame.classList.add('cv-thumb-empty');
-        frame.innerHTML = '<i class="fa-regular fa-image"></i>';
-    }
-}
-
 async function setStoredImage(img, imageId, thumbnail, serial) {
     if (!img || !imageId) return;
     try {
         const blob = await storage.getImage(imageId, thumbnail);
-        if (serial !== renderSerial || !img.isConnected) return;
-        if (!blob) {
-            // The blob is gone (e.g. restored from a backup that did not carry
-            // it). Fall back to the empty placeholder instead of a stuck spinner.
-            markImageMissing(img);
-            return;
-        }
+        if (!blob || serial !== renderSerial || !img.isConnected) return;
         const url = URL.createObjectURL(blob);
         objectUrls.add(url);
         img.src = url;
         img.closest('.cv-image-loading')?.classList.remove('cv-image-loading');
     } catch (error) {
         console.error('[Character Visual] Failed to load image:', error);
-        if (serial === renderSerial && img.isConnected) markImageMissing(img);
     }
 }
 
 function autoSizeTextarea(textarea) {
     textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(150, Math.max(46, textarea.scrollHeight))}px`;
+    textarea.style.height = `${Math.min(120, Math.max(24, textarea.scrollHeight))}px`;
 }
 
 function panelVisible() {
     return panel && panel.style.display !== 'none';
+}
+
+function previewToggleText() {
+    if (getUiLanguage() === 'ru') {
+        return previewVisible
+            ? '\u0421\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0435\u0432\u044c\u044e'
+            : '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043f\u0440\u0435\u0432\u044c\u044e';
+    }
+    return previewVisible ? 'Hide preview' : 'Show preview';
+}
+
+// Toggles the preview column. Hiding it also physically shrinks the panel so it
+// takes less space (and restores the previous width when shown again).
+function setPreviewVisible(visible) {
+    previewVisible = visible;
+    settings.previewVisible = visible;
+
+    if (panelVisible()) {
+        const viewport = viewportSize();
+        const maxWidth = Math.max(MIN_PANEL_SIZE.width, viewport.width - DRAG_EDGE * 2);
+        let width;
+        if (!visible) {
+            settings.expandedWidth = panel.getBoundingClientRect().width;
+            width = clamp(COMPACT_PANEL_WIDTH, MIN_PANEL_SIZE.width, maxWidth);
+        } else {
+            width = clamp(settings.expandedWidth || DEFAULT_PANEL_SIZE.width, MIN_PANEL_SIZE.width, maxWidth);
+        }
+        panel.style.width = `${width}px`;
+        const rect = panel.getBoundingClientRect();
+        const point = clampPanelPosition(rect.left, rect.top, rect.width, rect.height);
+        panel.style.left = `${point.left}px`;
+        panel.style.top = `${point.top}px`;
+        settings.panelSize = { width: rect.width, height: rect.height };
+    }
+
+    persistSettings();
+    renderPanel();
 }
 
 function updateStaticLabels() {
@@ -359,17 +365,17 @@ function renderEditor(content, serial) {
             <span class="cv-field-icon"><i class="${escapeHtml(field.icon)}"></i></span>
             <span class="cv-field-main">
                 <span class="cv-field-label">${escapeHtml(fieldLabel(field))}</span>
-                <textarea class="cv-field-input" rows="1" spellcheck="true" placeholder="вЂ”">${escapeHtml(activeState.fields?.[field.id] || '')}</textarea>
+                <textarea class="cv-field-input" rows="1" spellcheck="true" placeholder="&#8212;">${escapeHtml(activeState.fields?.[field.id] || '')}</textarea>
             </span>
             <i class="fa-solid fa-pencil cv-field-pencil" aria-hidden="true"></i>
         </label>
     `).join('');
 
     const previewCorners = `
-        <span class="cv-preview-corner cv-preview-corner-tl" aria-hidden="true">вќ¦</span>
-        <span class="cv-preview-corner cv-preview-corner-tr" aria-hidden="true">вќ¦</span>
-        <span class="cv-preview-corner cv-preview-corner-bl" aria-hidden="true">вќ¦</span>
-        <span class="cv-preview-corner cv-preview-corner-br" aria-hidden="true">вќ¦</span>
+        <span class="cv-preview-corner cv-preview-corner-tl" aria-hidden="true">&#9884;&#65038;</span>
+        <span class="cv-preview-corner cv-preview-corner-tr" aria-hidden="true">&#9884;&#65038;</span>
+        <span class="cv-preview-corner cv-preview-corner-bl" aria-hidden="true">&#9884;&#65038;</span>
+        <span class="cv-preview-corner cv-preview-corner-br" aria-hidden="true">&#9884;&#65038;</span>
     `;
 
     const imageMarkup = activeState.imageId
@@ -377,22 +383,25 @@ function renderEditor(content, serial) {
         : `<div class="cv-preview-frame cv-preview-empty">${previewCorners}<i class="fa-regular fa-image"></i><span>${escapeHtml(t('noImage'))}</span></div>`;
 
     content.innerHTML = `
-        <div class="cv-editor-shell">
+        <div class="cv-editor-shell${previewVisible ? '' : ' cv-preview-hidden'}">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('editor'))}<span>вњ¦</span></div>
+                    <div class="cv-eyebrow"><span>&#10022;</span>${escapeHtml(t('editor'))}<span>&#10022;</span></div>
                     <h2>${escapeHtml(name)}</h2>
                 </div>
-                <button id="cv-open-wardrobe" class="cv-primary" type="button"><i class="fa-solid fa-door-open"></i>${escapeHtml(t('chooseOutfit'))}</button>
+                <div class="cv-editor-heading-actions">
+                    <button id="cv-toggle-preview" class="cv-secondary" type="button" aria-pressed="${previewVisible}" title="${escapeHtml(previewToggleText())}"><i class="fa-regular fa-image"></i><span>${escapeHtml(previewToggleText())}</span></button>
+                    <button id="cv-open-wardrobe" class="cv-primary" type="button"><i class="fa-solid fa-door-open"></i><span>${escapeHtml(t('chooseOutfit'))}</span></button>
+                </div>
             </div>
             <div class="cv-editor-grid">
                 <section class="cv-editor-fields cv-section-card">
-                    <div class="cv-section-title"><span class="cv-flourish">вќ¦</span>${escapeHtml(t('outfitDetails'))}</div>
+                    <div class="cv-section-title"><span class="cv-flourish">&#9884;&#65038;</span>${escapeHtml(t('outfitDetails'))}</div>
                     <div class="cv-field-list">${fieldCards}</div>
                     <div class="cv-hint">${escapeHtml(t('currentChatHint'))}</div>
                 </section>
                 <section class="cv-preview-section cv-section-card">
-                    <div class="cv-section-title cv-centered"><span>вњ¦</span>${escapeHtml(t('preview'))}<span>вњ¦</span></div>
+                    <div class="cv-section-title cv-centered"><span>&#10022;</span>${escapeHtml(t('preview'))}<span>&#10022;</span></div>
                     ${imageMarkup}
                     <div class="cv-preview-actions">
                         <button id="cv-upload-image" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-up-from-bracket"></i>${escapeHtml(activeState.imageId ? t('replaceImage') : t('uploadImage'))}</button>
@@ -400,7 +409,7 @@ function renderEditor(content, serial) {
                     </div>
                 </section>
             </div>
-            <div class="cv-ornament-divider"><span>вњ¦</span></div>
+            <div class="cv-ornament-divider"><span>&#10022;</span></div>
             <div class="cv-editor-actions">
                 <button id="cv-save-outfit" class="cv-primary" type="button"><i class="fa-solid fa-floppy-disk"></i>${escapeHtml(activeState.outfitId ? t('updateOutfit') : t('saveOutfit'))}</button>
                 <button id="cv-save-as-new" class="cv-secondary" type="button"><i class="fa-solid fa-copy"></i>${escapeHtml(t('saveAsNew'))}</button>
@@ -421,12 +430,12 @@ function renderEditor(content, serial) {
     });
 
     content.querySelector('#cv-open-wardrobe').addEventListener('click', () => switchView('wardrobe'));
+    content.querySelector('#cv-toggle-preview').addEventListener('click', () => setPreviewVisible(!previewVisible));
     content.querySelector('#cv-upload-image').addEventListener('click', pickCurrentImage);
     content.querySelector('#cv-remove-image')?.addEventListener('click', async () => {
         activeState.imageId = null;
         await saveActiveState();
         renderPanel();
-        runImageGc();
     });
     content.querySelector('#cv-save-outfit').addEventListener('click', () => {
         if (activeState.outfitId) updateLinkedOutfit();
@@ -492,7 +501,7 @@ function renderWardrobe(content, serial) {
         <div class="cv-wardrobe-shell">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('wardrobe'))}<span>вњ¦</span></div>
+                    <div class="cv-eyebrow"><span>&#10022;</span>${escapeHtml(t('wardrobe'))}<span>&#10022;</span></div>
                     <h2>${escapeHtml(t('chooseOutfit'))}</h2>
                 </div>
                 <button id="cv-back-editor" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
@@ -555,7 +564,7 @@ function renderSettings(content) {
         <div class="cv-settings-shell">
             <div class="cv-editor-heading">
                 <div>
-                    <div class="cv-eyebrow"><span>вњ¦</span>${escapeHtml(t('settings'))}<span>вњ¦</span></div>
+                    <div class="cv-eyebrow"><span>&#10022;</span>${escapeHtml(t('settings'))}<span>&#10022;</span></div>
                     <h2>${escapeHtml(t('title'))}</h2>
                 </div>
                 <button id="cv-settings-back" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
@@ -700,7 +709,6 @@ async function pickCurrentImage() {
         await saveActiveState();
         toast('success', t('imageSaved'));
         renderPanel();
-        runImageGc();
     } catch (error) {
         console.error('[Character Visual] Image upload failed:', error);
         toast('error', t('imageFailed'));
@@ -726,7 +734,7 @@ async function formDialog({ title, fields, confirmLabel = t('save') }) {
         }).join('');
         overlay.innerHTML = `
             <div class="cv-dialog-box" role="dialog" aria-modal="true">
-                <div class="cv-dialog-ornament">вњ¦</div>
+                <div class="cv-dialog-ornament">&#10022;</div>
                 <h3>${escapeHtml(title)}</h3>
                 ${rows}
                 <div class="cv-dialog-actions">
@@ -814,7 +822,6 @@ async function updateLinkedOutfit() {
     outfit.updatedAt = new Date().toISOString();
     library = await storage.saveLibrary(library);
     toast('success', t('updated'));
-    runImageGc();
 }
 
 async function clearCurrentOutfit() {
@@ -822,7 +829,6 @@ async function clearCurrentOutfit() {
     await saveActiveState();
     toast('success', t('cleared'));
     renderPanel();
-    runImageGc();
 }
 
 async function applyOutfit(outfitId) {
@@ -839,7 +845,6 @@ async function applyOutfit(outfitId) {
     await saveActiveState();
     toast('success', t('applied'));
     switchView('editor');
-    runImageGc();
 }
 
 async function createFolder() {
@@ -938,7 +943,6 @@ async function deleteOutfit(outfitId) {
     library.outfits = library.outfits.filter((item) => item.id !== outfitId);
     library = await storage.saveLibrary(library);
     renderPanel();
-    runImageGc();
 }
 
 async function editField(fieldId) {
@@ -947,8 +951,8 @@ async function editField(fieldId) {
     const values = await formDialog({
         title: t('rename'),
         fields: [
-            { id: 'ru', label: `${t('fieldName')} вЂ” RU`, value: field.labels.ru },
-            { id: 'en', label: `${t('fieldName')} вЂ” EN`, value: field.labels.en },
+            { id: 'ru', label: `${t('fieldName')} \u2014 RU`, value: field.labels.ru },
+            { id: 'en', label: `${t('fieldName')} \u2014 EN`, value: field.labels.en },
         ],
     });
     if (!values || (!values.ru && !values.en)) return;
@@ -963,8 +967,8 @@ async function addField() {
         title: t('addField'),
         confirmLabel: t('create'),
         fields: [
-            { id: 'ru', label: `${t('fieldName')} вЂ” RU`, value: '' },
-            { id: 'en', label: `${t('fieldName')} вЂ” EN`, value: '' },
+            { id: 'ru', label: `${t('fieldName')} \u2014 RU`, value: '' },
+            { id: 'en', label: `${t('fieldName')} \u2014 EN`, value: '' },
         ],
     });
     if (!values || (!values.ru && !values.en)) return;
@@ -1030,7 +1034,6 @@ async function importBackup() {
             wardrobeFolder = 'all';
             toast('success', t('importDone'));
             renderPanel();
-            runImageGc();
         } catch (error) {
             console.error('[Character Visual] Import failed:', error);
             toast('error', error?.message === 'INVALID_BACKUP' ? t('invalidBackup') : t('importFailed'));
@@ -1085,6 +1088,7 @@ function applyPanelLayout(centered = false) {
 function openPanel(mode = 'floating') {
     panel.style.display = 'flex';
     panel.dataset.openMode = mode;
+    previewVisible = settings.previewVisible !== false;
     applyPanelLayout(mode === 'center');
     currentView = 'editor';
     renderPanel();
@@ -1273,14 +1277,8 @@ function createMainUi() {
     panel.id = 'cv-panel';
     panel.style.display = 'none';
     panel.innerHTML = `
-        <div class="cv-panel-ornaments" aria-hidden="true">
-            <span class="cv-panel-ornament cv-panel-ornament-tl">вќ¦</span>
-            <span class="cv-panel-ornament cv-panel-ornament-tr">вќ¦</span>
-            <span class="cv-panel-ornament cv-panel-ornament-bl">вќ¦</span>
-            <span class="cv-panel-ornament cv-panel-ornament-br">вќ¦</span>
-        </div>
         <header id="cv-header">
-            <div class="cv-header-brand"><span class="cv-header-ornament">вќ¦</span><span id="cv-title">${escapeHtml(t('title'))}</span></div>
+            <div class="cv-header-brand"><span class="cv-header-ornament">&#9884;&#65038;</span><span id="cv-title">${escapeHtml(t('title'))}</span></div>
             <nav id="cv-header-actions">
                 <button id="cv-nav-editor" class="cv-nav-button cv-active" data-view="editor" type="button" title="${escapeHtml(t('editor'))}"><i class="fa-solid fa-shirt"></i></button>
                 <button id="cv-nav-wardrobe" class="cv-nav-button" data-view="wardrobe" type="button" title="${escapeHtml(t('wardrobe'))}"><i class="fa-solid fa-door-open"></i></button>
