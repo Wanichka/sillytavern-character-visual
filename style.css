@@ -1,0 +1,987 @@
+/* Character Visual — theme-aware wardrobe styles.
+   The structure follows Character Thoughts / Relationship Memory Tracker.
+   Decorative lines and ornaments borrow the mood of the concept art while
+   every colour continues to follow the active SillyTavern theme. */
+
+#cv-panel,
+#cv-button,
+.cv-dialog-overlay,
+#cv-extension-settings {
+    --cv-bg: var(--SmartThemeBlurTintColor, rgba(22, 23, 25, 0.96));
+    --cv-text: var(--SmartThemeBodyColor, #eeeae3);
+    --cv-accent: var(--SmartThemeQuoteColor, #c58a5c);
+    --cv-shadow: rgba(0, 0, 0, 0.48);
+    --cv-border: color-mix(in srgb, var(--cv-accent) 46%, transparent);
+    --cv-soft-border: color-mix(in srgb, var(--cv-text) 19%, transparent);
+    --cv-layer-1: color-mix(in srgb, var(--cv-bg), var(--cv-text) 6%);
+    --cv-layer-2: color-mix(in srgb, var(--cv-bg), var(--cv-text) 11%);
+    --cv-layer-3: color-mix(in srgb, var(--cv-bg), var(--cv-text) 17%);
+    --cv-muted: color-mix(in srgb, var(--cv-text) 62%, transparent);
+    --cv-danger: #b9504a;
+    font-family: var(--mainFontFamily, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+
+#cv-panel {
+    position: fixed;
+    z-index: 10002;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-width: 560px;
+    min-height: 480px;
+    color: var(--cv-text);
+    background:
+        radial-gradient(circle at 9% 7%, color-mix(in srgb, var(--cv-accent) 9%, transparent), transparent 25%),
+        radial-gradient(circle at 91% 90%, color-mix(in srgb, var(--cv-accent) 7%, transparent), transparent 27%),
+        var(--cv-bg);
+    border: 1px solid var(--cv-border);
+    border-radius: 15px;
+    box-shadow: 0 18px 60px var(--cv-shadow), inset 0 0 42px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(calc(var(--SmartThemeBlurStrength, 10) * 1px));
+}
+
+#cv-panel::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    z-index: 4;
+    pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 19%, transparent);
+    border-radius: 11px;
+}
+
+#cv-header {
+    position: relative;
+    z-index: 5;
+    flex: 0 0 auto;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 14px 10px 20px;
+    box-sizing: border-box;
+    cursor: move;
+    user-select: none;
+    background: color-mix(in srgb, var(--cv-layer-1) 88%, transparent);
+    border-bottom: 1px solid var(--cv-border);
+}
+
+.cv-header-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--cv-accent);
+    font-size: clamp(19px, 2vw, 28px);
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.1;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--cv-accent) 18%, transparent);
+}
+
+.cv-header-brand #cv-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cv-header-ornament {
+    opacity: 0.45;
+    font-size: 18px;
+}
+
+#cv-header-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 7px;
+}
+
+#cv-header-actions button,
+.cv-toolbar-button,
+.cv-card-icon,
+.cv-icon-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--cv-soft-border);
+    color: var(--cv-text);
+    background: var(--cv-layer-2);
+    cursor: pointer;
+    transition: 140ms ease;
+}
+
+#cv-header-actions button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+#cv-header-actions button:hover,
+#cv-header-actions button.cv-active,
+.cv-toolbar-button:hover,
+.cv-card-icon:hover,
+.cv-icon-danger:hover {
+    color: var(--cv-accent);
+    border-color: var(--cv-border);
+    background: color-mix(in srgb, var(--cv-layer-2), var(--cv-accent) 11%);
+}
+
+#cv-content {
+    position: relative;
+    z-index: 3;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 18px 20px 22px;
+    scrollbar-color: color-mix(in srgb, var(--cv-accent) 55%, transparent) transparent;
+}
+
+.cv-editor-shell,
+.cv-wardrobe-shell,
+.cv-settings-shell {
+    min-height: 100%;
+}
+
+.cv-editor-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 14px;
+}
+
+.cv-editor-heading h2 {
+    margin: 3px 0 0;
+    color: var(--cv-text);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.cv-eyebrow,
+.cv-section-title {
+    color: var(--cv-accent);
+    font-family: Georgia, "Times New Roman", serif;
+    letter-spacing: 0.02em;
+}
+
+.cv-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.cv-eyebrow span {
+    font-size: 8px;
+}
+
+.cv-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.94fr) minmax(290px, 1.06fr);
+    gap: 16px;
+    min-height: 0;
+}
+
+.cv-section-card {
+    position: relative;
+    box-sizing: border-box;
+    border: 1px solid var(--cv-soft-border);
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--cv-layer-1) 88%, transparent);
+    box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.06);
+}
+
+.cv-section-card::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 9%, transparent);
+    border-radius: 9px;
+}
+
+.cv-editor-fields,
+.cv-preview-section {
+    min-height: 470px;
+    padding: 16px;
+}
+
+.cv-section-title {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 2px 14px;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.cv-section-title.cv-centered {
+    justify-content: center;
+}
+
+.cv-section-title.cv-centered span {
+    font-size: 8px;
+}
+
+.cv-flourish {
+    font-size: 17px;
+}
+
+.cv-field-list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.cv-field-card {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid var(--cv-soft-border);
+    border-radius: 11px;
+    background: var(--cv-layer-1);
+    transition: border-color 140ms ease, background 140ms ease;
+}
+
+.cv-field-card:focus-within {
+    border-color: var(--cv-border);
+    background: color-mix(in srgb, var(--cv-layer-1), var(--cv-accent) 5%);
+}
+
+.cv-field-icon {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    border: 1px solid var(--cv-border);
+    border-radius: 50%;
+    color: var(--cv-accent);
+    background: color-mix(in srgb, var(--cv-bg), var(--cv-accent) 6%);
+}
+
+.cv-field-icon.cv-small {
+    width: 31px;
+    height: 31px;
+    font-size: 11px;
+}
+
+.cv-field-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cv-field-label {
+    color: var(--cv-accent);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.cv-field-input {
+    width: 100%;
+    min-height: 32px;
+    max-height: 150px;
+    padding: 3px 0;
+    resize: none;
+    overflow-y: auto;
+    box-sizing: border-box;
+    border: 0 !important;
+    outline: 0 !important;
+    color: var(--cv-text) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.cv-field-input::placeholder {
+    color: var(--cv-muted);
+}
+
+.cv-field-pencil {
+    align-self: start;
+    margin-top: 6px;
+    color: var(--cv-muted);
+    font-size: 11px;
+}
+
+.cv-hint {
+    position: relative;
+    z-index: 1;
+    margin-top: 12px;
+    color: var(--cv-muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.cv-preview-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.cv-preview-frame {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-height: 330px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 0 0 13px;
+    border: 1px solid var(--cv-border);
+    border-radius: 28px 28px 13px 13px;
+    background:
+        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 75%),
+        linear-gradient(45deg, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 25%, transparent 25%, transparent 75%, color-mix(in srgb, var(--cv-layer-2) 82%, transparent) 75%),
+        color-mix(in srgb, var(--cv-bg), var(--cv-text) 3%);
+    background-position: 0 0, 10px 10px;
+    background-size: 20px 20px;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.23), 0 0 24px color-mix(in srgb, var(--cv-accent) 7%, transparent);
+}
+
+.cv-preview-frame::before,
+.cv-preview-frame::after {
+    position: absolute;
+    z-index: 2;
+    color: color-mix(in srgb, var(--cv-accent) 62%, transparent);
+    font-family: Georgia, serif;
+    font-size: 23px;
+    line-height: 1;
+    text-shadow: 0 0 8px var(--cv-shadow);
+}
+
+.cv-preview-frame::before {
+    content: "❦";
+    left: 13px;
+    top: 11px;
+    transform: rotate(-28deg);
+}
+
+.cv-preview-frame::after {
+    content: "❦";
+    right: 13px;
+    bottom: 11px;
+    transform: rotate(152deg);
+}
+
+.cv-preview-frame img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.cv-preview-empty {
+    flex-direction: column;
+    gap: 10px;
+    color: var(--cv-muted);
+    font-size: 12px;
+}
+
+.cv-preview-empty > i {
+    color: color-mix(in srgb, var(--cv-accent) 58%, transparent);
+    font-size: 42px;
+}
+
+.cv-image-spinner {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 3;
+    transform: translate(-50%, -50%);
+    color: var(--cv-accent);
+}
+
+.cv-preview-frame:not(.cv-image-loading) .cv-image-spinner,
+.cv-wardrobe-thumb:not(.cv-image-loading) .cv-image-spinner {
+    display: none;
+}
+
+.cv-preview-actions,
+.cv-editor-actions,
+.cv-inline-actions,
+.cv-drawer-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cv-preview-actions > :first-child {
+    flex: 1;
+}
+
+#cv-panel button,
+.cv-dialog-overlay button {
+    font-family: inherit;
+}
+
+.cv-primary,
+.cv-secondary,
+.cv-primary-small,
+.cv-ghost-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 140ms ease;
+}
+
+.cv-primary,
+.cv-secondary,
+.cv-ghost-danger {
+    min-height: 38px;
+    padding: 7px 13px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.cv-primary,
+.cv-primary-small {
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 74%, transparent);
+    color: #fff;
+    background: color-mix(in srgb, var(--cv-accent), var(--cv-bg) 22%);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.38);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--cv-accent) 11%, transparent);
+}
+
+.cv-primary:hover,
+.cv-primary-small:hover {
+    background: color-mix(in srgb, var(--cv-accent), var(--cv-text) 11%);
+}
+
+.cv-secondary {
+    border: 1px solid var(--cv-border);
+    color: var(--cv-text);
+    background: var(--cv-layer-2);
+}
+
+.cv-secondary:hover {
+    color: var(--cv-accent);
+    background: color-mix(in srgb, var(--cv-layer-2), var(--cv-accent) 9%);
+}
+
+.cv-primary-small {
+    min-height: 31px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cv-ghost-danger {
+    margin-left: auto;
+    border: 1px solid color-mix(in srgb, var(--cv-danger) 45%, transparent);
+    color: color-mix(in srgb, var(--cv-danger), var(--cv-text) 30%);
+    background: transparent;
+}
+
+.cv-ghost-danger:hover {
+    color: #fff;
+    background: color-mix(in srgb, var(--cv-danger) 58%, transparent);
+}
+
+.cv-icon-danger {
+    flex: 0 0 auto;
+    width: 39px;
+    height: 39px;
+    padding: 0;
+    border-radius: 10px;
+}
+
+.cv-ornament-divider {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 14px 4px 11px;
+    color: var(--cv-accent);
+    opacity: 0.72;
+}
+
+.cv-ornament-divider::before,
+.cv-ornament-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, transparent, var(--cv-border));
+}
+
+.cv-ornament-divider::after {
+    background: linear-gradient(90deg, var(--cv-border), transparent);
+}
+
+.cv-wardrobe-toolbar {
+    position: sticky;
+    top: -18px;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) minmax(180px, 1fr) 38px 38px 38px;
+    gap: 7px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+#cv-panel select,
+#cv-panel input[type="text"],
+#cv-panel input[type="search"],
+.cv-dialog-box select,
+.cv-dialog-box input[type="text"] {
+    width: 100%;
+    min-height: 36px;
+    box-sizing: border-box;
+    border: 1px solid var(--cv-soft-border);
+    border-radius: 8px;
+    outline: none;
+    color: var(--cv-text);
+    background: var(--cv-bg);
+    font: inherit;
+    font-size: 12px;
+}
+
+#cv-panel select,
+.cv-dialog-box select {
+    padding: 5px 28px 5px 8px;
+}
+
+#cv-panel input[type="text"],
+#cv-panel input[type="search"],
+.cv-dialog-box input[type="text"] {
+    padding: 6px 9px;
+}
+
+.cv-search-wrap {
+    position: relative;
+}
+
+.cv-search-wrap > i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+    color: var(--cv-muted);
+    font-size: 11px;
+}
+
+.cv-search-wrap input {
+    padding-left: 30px !important;
+}
+
+.cv-toolbar-button {
+    width: 38px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+.cv-danger:hover,
+.cv-card-icon.cv-danger:hover {
+    color: #fff;
+    border-color: color-mix(in srgb, var(--cv-danger) 60%, transparent);
+    background: color-mix(in srgb, var(--cv-danger) 52%, transparent);
+}
+
+.cv-wardrobe-hint {
+    margin: 0 3px 13px;
+}
+
+.cv-wardrobe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 13px;
+}
+
+.cv-outfit-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--cv-soft-border);
+    border-radius: 12px;
+    background: var(--cv-layer-1);
+    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.cv-outfit-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--cv-border);
+    box-shadow: 0 9px 25px rgba(0, 0, 0, 0.17);
+}
+
+.cv-wardrobe-thumb {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--cv-soft-border);
+    background:
+        radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--cv-accent) 8%, transparent), transparent 60%),
+        var(--cv-bg);
+}
+
+.cv-wardrobe-thumb::before,
+.cv-wardrobe-thumb::after {
+    content: "✦";
+    position: absolute;
+    z-index: 2;
+    color: color-mix(in srgb, var(--cv-accent) 37%, transparent);
+    font-size: 8px;
+}
+
+.cv-wardrobe-thumb::before {
+    left: 9px;
+    top: 8px;
+}
+
+.cv-wardrobe-thumb::after {
+    right: 9px;
+    bottom: 8px;
+}
+
+.cv-wardrobe-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+.cv-thumb-empty {
+    color: color-mix(in srgb, var(--cv-accent) 46%, transparent);
+    font-size: 36px;
+}
+
+.cv-outfit-card-body {
+    padding: 10px;
+}
+
+.cv-outfit-card h3 {
+    margin: 0 0 5px;
+    overflow: hidden;
+    color: var(--cv-text);
+    font-size: 13px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cv-folder-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 9px;
+    overflow: hidden;
+    color: var(--cv-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cv-outfit-card-actions {
+    display: grid;
+    grid-template-columns: minmax(75px, 1fr) 31px 31px 31px;
+    gap: 5px;
+}
+
+.cv-card-icon {
+    width: 31px;
+    height: 31px;
+    padding: 0;
+    border-radius: 8px;
+    font-size: 10px;
+}
+
+.cv-empty-state {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    color: var(--cv-muted);
+    text-align: center;
+}
+
+.cv-empty-state > i {
+    color: color-mix(in srgb, var(--cv-accent) 55%, transparent);
+    font-size: 38px;
+}
+
+.cv-empty-state p {
+    margin: 0;
+    font-size: 13px;
+}
+
+.cv-settings-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.85fr) minmax(310px, 1.15fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.cv-settings-card {
+    padding: 15px;
+}
+
+.cv-backup-card {
+    grid-column: 1 / -1;
+}
+
+.cv-setting-row,
+.cv-check-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 11px;
+    color: var(--cv-text);
+    font-size: 12px;
+}
+
+.cv-setting-row > span {
+    flex: 1;
+}
+
+.cv-setting-row > select {
+    flex: 0 0 145px;
+    width: 145px !important;
+}
+
+.cv-check-row input {
+    accent-color: var(--cv-accent);
+}
+
+.cv-wide {
+    width: 100%;
+}
+
+.cv-setting-fields {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0;
+}
+
+.cv-setting-field {
+    display: grid;
+    grid-template-columns: 31px minmax(80px, 1fr) 31px 31px 31px 31px;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid var(--cv-soft-border);
+    border-radius: 9px;
+    background: var(--cv-layer-1);
+}
+
+.cv-setting-field-name {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cv-setting-field button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+#cv-resize-handle {
+    position: absolute;
+    right: 4px;
+    bottom: 3px;
+    z-index: 8;
+    width: 27px;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--cv-accent) 65%, transparent);
+    cursor: nwse-resize;
+    transform: rotate(-45deg);
+    font-size: 13px;
+}
+
+#cv-button {
+    position: fixed;
+    right: 18px;
+    bottom: 48px;
+    z-index: 10001;
+    min-width: 88px;
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 70%, transparent);
+    border-radius: 999px;
+    padding: 8px 14px;
+    color: #fff;
+    background: color-mix(in srgb, var(--cv-accent), var(--cv-bg) 18%);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3), 0 0 17px color-mix(in srgb, var(--cv-accent) 15%, transparent);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+#cv-button:hover {
+    background: color-mix(in srgb, var(--cv-accent), var(--cv-text) 11%);
+}
+
+.cv-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    color: var(--cv-text);
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(3px);
+}
+
+.cv-dialog-box {
+    position: relative;
+    width: min(430px, 100%);
+    padding: 20px;
+    box-sizing: border-box;
+    border: 1px solid var(--cv-border);
+    border-radius: 14px;
+    background: var(--cv-bg);
+    box-shadow: 0 20px 65px rgba(0, 0, 0, 0.55);
+}
+
+.cv-dialog-box::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--cv-accent) 16%, transparent);
+    border-radius: 10px;
+}
+
+.cv-dialog-ornament {
+    color: var(--cv-accent);
+    text-align: center;
+    font-size: 10px;
+}
+
+.cv-dialog-box h3 {
+    position: relative;
+    margin: 5px 0 15px;
+    color: var(--cv-accent);
+    font-family: Georgia, "Times New Roman", serif;
+    text-align: center;
+}
+
+.cv-dialog-row {
+    position: relative;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.cv-dialog-row > span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--cv-muted);
+    font-size: 11px;
+}
+
+.cv-dialog-actions {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.cv-dialog-actions > button {
+    flex: 1;
+}
+
+#cv-extension-settings .inline-drawer-header b {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+#cv-extension-settings .inline-drawer-header b i {
+    color: var(--cv-accent);
+}
+
+.cv-drawer-actions {
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.cv-drawer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 8px 0;
+}
+
+.cv-drawer-row > span {
+    flex: 1;
+}
+
+.cv-drawer-row > select {
+    flex: 0 0 145px;
+    max-width: 145px;
+}
+
+.cv-drawer-actions .menu_button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@media (max-width: 760px) {
+    #cv-panel {
+        min-width: 440px;
+    }
+
+    .cv-editor-grid,
+    .cv-settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-backup-card {
+        grid-column: auto;
+    }
+
+    .cv-editor-fields,
+    .cv-preview-section {
+        min-height: auto;
+    }
+
+    .cv-preview-frame {
+        min-height: 380px;
+    }
+
+    .cv-wardrobe-toolbar {
+        grid-template-columns: minmax(130px, 0.75fr) minmax(160px, 1.25fr) 36px 36px 36px;
+    }
+}
