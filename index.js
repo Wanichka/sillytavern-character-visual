@@ -113,6 +113,7 @@ function getDefaultSettings() {
         panelPosition: null,
         panelSize: { ...DEFAULT_PANEL_SIZE },
         expandedWidth: DEFAULT_PANEL_SIZE.width,
+        expandedHeight: DEFAULT_PANEL_SIZE.height,
         buttonPosition: null,
         fields: cloneDefaultFields(),
     };
@@ -294,21 +295,48 @@ function previewToggleText() {
 
 // Toggles the preview column. Hiding it also physically shrinks the panel so it
 // takes less space (and restores the previous width when shown again).
+// Measures the natural height the panel content needs at its current width,
+// ignoring the shell's min-height:100% stretch so we get the real content size.
+function measureContentHeight() {
+    const header = panel.querySelector('#cv-header');
+    const content = panel.querySelector('#cv-content');
+    const shell = content?.firstElementChild;
+    if (!content) return null;
+    const prevMin = shell ? shell.style.minHeight : null;
+    if (shell) shell.style.minHeight = '0px';
+    const cs = getComputedStyle(content);
+    const padV = parseFloat(cs.paddingTop || '0') + parseFloat(cs.paddingBottom || '0');
+    const needed = (header?.offsetHeight || 0) + (shell?.offsetHeight || 0) + padV + 6;
+    if (shell) shell.style.minHeight = prevMin || '';
+    return needed;
+}
+
 function setPreviewVisible(visible) {
     previewVisible = visible;
     settings.previewVisible = visible;
+    renderPanel();
 
     if (panelVisible()) {
         const viewport = viewportSize();
         const maxWidth = Math.max(MIN_PANEL_SIZE.width, viewport.width - DRAG_EDGE * 2);
+        const maxHeight = Math.max(MIN_PANEL_SIZE.height, viewport.height - DRAG_TOP - DRAG_EDGE);
         let width;
+        let height;
         if (!visible) {
-            settings.expandedWidth = panel.getBoundingClientRect().width;
+            const rect = panel.getBoundingClientRect();
+            settings.expandedWidth = rect.width;
+            settings.expandedHeight = rect.height;
             width = clamp(COMPACT_PANEL_WIDTH, MIN_PANEL_SIZE.width, maxWidth);
+            panel.style.width = `${width}px`;
+            // Measure after the compact width is applied so the content has reflowed.
+            const needed = measureContentHeight();
+            height = clamp(needed || rect.height, MIN_PANEL_SIZE.height, maxHeight);
         } else {
             width = clamp(settings.expandedWidth || DEFAULT_PANEL_SIZE.width, MIN_PANEL_SIZE.width, maxWidth);
+            height = clamp(settings.expandedHeight || DEFAULT_PANEL_SIZE.height, MIN_PANEL_SIZE.height, maxHeight);
         }
         panel.style.width = `${width}px`;
+        panel.style.height = `${height}px`;
         const rect = panel.getBoundingClientRect();
         const point = clampPanelPosition(rect.left, rect.top, rect.width, rect.height);
         panel.style.left = `${point.left}px`;
@@ -317,7 +345,6 @@ function setPreviewVisible(visible) {
     }
 
     persistSettings();
-    renderPanel();
 }
 
 function updateStaticLabels() {
