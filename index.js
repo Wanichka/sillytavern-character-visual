@@ -233,6 +233,9 @@ async function loadActiveChatState() {
 
 async function saveActiveState() {
     if (!activeChatKey) return;
+    // Cancel any pending debounced write so a stale snapshot scheduled by an
+    // earlier keystroke cannot overwrite this authoritative save afterwards.
+    clearTimeout(saveStateTimer);
     try {
         await storage.saveChatState(activeChatKey, activeState);
     } catch (error) {
@@ -261,17 +264,45 @@ function revokeObjectUrls() {
     objectUrls.clear();
 }
 
+// Fire-and-forget cleanup of image blobs no longer referenced by any outfit or
+// chat snapshot. Only call after the relevant state has already been persisted.
+function runImageGc() {
+    storage?.collectGarbage?.()
+        .then((removed) => {
+            if (removed) console.log(`[Character Visual] Removed ${removed} orphaned image(s).`);
+        })
+        .catch((error) => console.error('[Character Visual] Image cleanup failed:', error));
+}
+
+function markImageMissing(img) {
+    const frame = img.closest('.cv-preview-frame, .cv-wardrobe-thumb');
+    if (!frame) return;
+    frame.classList.remove('cv-image-loading');
+    if (frame.classList.contains('cv-preview-frame')) {
+        frame.classList.add('cv-preview-empty');
+        frame.innerHTML = `<i class="fa-regular fa-image"></i><span>${escapeHtml(t('noImage'))}</span>`;
+    } else {
+        frame.classList.add('cv-thumb-empty');
+        frame.innerHTML = '<i class="fa-regular fa-image"></i>';
+    }
+}
+
 async function setStoredImage(img, imageId, thumbnail, serial) {
     if (!img || !imageId) return;
     try {
         const blob = await storage.getImage(imageId, thumbnail);
-        if (!blob || serial !== renderSerial || !img.isConnected) return;
+        if (serial !== renderSerial || !img.isConnected) return;
+        if (!blob) {
+            markImageMissing(img);
+            return;
+        }
         const url = URL.createObjectURL(blob);
         objectUrls.add(url);
         img.src = url;
         img.closest('.cv-image-loading')?.classList.remove('cv-image-loading');
     } catch (error) {
         console.error('[Character Visual] Failed to load image:', error);
+        if (serial === renderSerial && img.isConnected) markImageMissing(img);
     }
 }
 
@@ -463,6 +494,7 @@ function renderEditor(content, serial) {
         activeState.imageId = null;
         await saveActiveState();
         renderPanel();
+        runImageGc();
     });
     content.querySelector('#cv-save-outfit').addEventListener('click', () => {
         if (activeState.outfitId) updateLinkedOutfit();
@@ -532,7 +564,8 @@ function renderWardrobe(content, serial) {
                     <h2>${escapeHtml(t('chooseOutfit'))}</h2>
                 </div>
                 <div class="cv-editor-heading-actions">
-                    <button id="cv-add-outfits" class="cv-primary" type="button"><i class="fa-solid fa-images"></i><span>${escapeHtml(t('addOutfits'))}</span></button>
+                    <button id="cv-new-outfit" class="cv-primary" type="button"><i class="fa-solid fa-plus"></i><span>${escapeHtml(t('newOutfit'))}</span></button>
+                    <button id="cv-add-outfits" class="cv-secondary" type="button"><i class="fa-solid fa-images"></i><span>${escapeHtml(t('addOutfits'))}</span></button>
                     <button id="cv-back-editor" class="cv-secondary" type="button"><i class="fa-solid fa-arrow-left"></i>${escapeHtml(t('back'))}</button>
                 </div>
             </div>
@@ -549,6 +582,7 @@ function renderWardrobe(content, serial) {
     `;
 
     content.querySelector('#cv-back-editor').addEventListener('click', () => switchView('editor'));
+    content.querySelector('#cv-new-outfit').addEventListener('click', createEmptyWardrobeOutfit);
     content.querySelector('#cv-add-outfits').addEventListener('click', addWardrobeOutfits);
     content.querySelector('#cv-folder-filter').addEventListener('change', (event) => {
         wardrobeFolder = event.target.value;
@@ -738,6 +772,71 @@ function pickImageFiles() {
     });
 }
 
+// Header "+" quick action: create an empty outfit and immediately open it in
+// the editor (applied to the current chat) so its fields can be filled in now.
+async function quickNewOutfit() {
+    if (!library) return;
+    const folderId = wardrobeFolder !== 'all' && library.folders.some((folder) => folder.id === wardrobeFolder)
+        ? wardrobeFolder
+        : library.folders[0].id;
+
+    const base = t('newOutfit');
+    let index = library.outfits.length + 1;
+    let name = `${base} ${index}`;
+    while (library.outfits.some((outfit) => outfit.name === name)) {
+        index += 1;
+        name = `${base} ${index}`;
+    }
+
+    const now = new Date().toISOString();
+    const outfit = {
+        id: createId('outfit'),
+        name,
+        folderId,
+        imageId: null,
+        fields: {},
+        createdAt: now,
+        updatedAt: now,
+    };
+    library.outfits.push(outfit);
+    library = await storage.saveLibrary(library);
+    // Opens it in the editor (linked), so "Update outfit" saves the fields back.
+    await applyOutfit(outfit.id);
+}
+
+// Creates a single empty outfit (no image, no fields) in the current folder,
+// for looks that have no reference photo (e.g. an undressed state). Auto-named
+// so entries stay distinguishable; rename per card later.
+async function createEmptyWardrobeOutfit() {
+    if (!library) return;
+    const folderId = wardrobeFolder !== 'all' && library.folders.some((folder) => folder.id === wardrobeFolder)
+        ? wardrobeFolder
+        : library.folders[0].id;
+
+    const base = t('newOutfit');
+    let index = library.outfits.length + 1;
+    let name = `${base} ${index}`;
+    while (library.outfits.some((outfit) => outfit.name === name)) {
+        index += 1;
+        name = `${base} ${index}`;
+    }
+
+    const now = new Date().toISOString();
+    library.outfits.push({
+        id: createId('outfit'),
+        name,
+        folderId,
+        imageId: null,
+        fields: {},
+        createdAt: now,
+        updatedAt: now,
+    });
+    library = await storage.saveLibrary(library);
+    wardrobeSearch = '';
+    toast('success', t('saved'));
+    renderPanel();
+}
+
 // Bulk-adds outfits straight into the wardrobe from selected photos, without
 // touching the current chat. Fields stay empty; the temporary name comes from
 // the file name and can be renamed later per card.
@@ -804,6 +903,7 @@ async function pickCurrentImage() {
         await saveActiveState();
         toast('success', t('imageSaved'));
         renderPanel();
+        runImageGc();
     } catch (error) {
         console.error('[Character Visual] Image upload failed:', error);
         toast('error', t('imageFailed'));
@@ -917,6 +1017,7 @@ async function updateLinkedOutfit() {
     outfit.updatedAt = new Date().toISOString();
     library = await storage.saveLibrary(library);
     toast('success', t('updated'));
+    runImageGc();
 }
 
 async function clearCurrentOutfit() {
@@ -924,6 +1025,7 @@ async function clearCurrentOutfit() {
     await saveActiveState();
     toast('success', t('cleared'));
     renderPanel();
+    runImageGc();
 }
 
 async function applyOutfit(outfitId) {
@@ -940,6 +1042,7 @@ async function applyOutfit(outfitId) {
     await saveActiveState();
     toast('success', t('applied'));
     switchView('editor');
+    runImageGc();
 }
 
 async function createFolder() {
@@ -1038,6 +1141,7 @@ async function deleteOutfit(outfitId) {
     library.outfits = library.outfits.filter((item) => item.id !== outfitId);
     library = await storage.saveLibrary(library);
     renderPanel();
+    runImageGc();
 }
 
 async function editField(fieldId) {
@@ -1129,6 +1233,7 @@ async function importBackup() {
             wardrobeFolder = 'all';
             toast('success', t('importDone'));
             renderPanel();
+            runImageGc();
         } catch (error) {
             console.error('[Character Visual] Import failed:', error);
             toast('error', error?.message === 'INVALID_BACKUP' ? t('invalidBackup') : t('importFailed'));
@@ -1375,6 +1480,7 @@ function createMainUi() {
         <header id="cv-header">
             <div class="cv-header-brand"><span class="cv-header-ornament">&#9884;&#65038;</span><span id="cv-title">${escapeHtml(t('title'))}</span></div>
             <nav id="cv-header-actions">
+                <button id="cv-quick-new" type="button" title="${escapeHtml(t('newOutfit'))}"><i class="fa-solid fa-plus"></i></button>
                 <button id="cv-nav-editor" class="cv-nav-button cv-active" data-view="editor" type="button" title="${escapeHtml(t('editor'))}"><i class="fa-solid fa-shirt"></i></button>
                 <button id="cv-nav-wardrobe" class="cv-nav-button" data-view="wardrobe" type="button" title="${escapeHtml(t('wardrobe'))}"><i class="fa-solid fa-door-open"></i></button>
                 <button id="cv-nav-settings" class="cv-nav-button" data-view="settings" type="button" title="${escapeHtml(t('settings'))}"><i class="fa-solid fa-gear"></i></button>
@@ -1390,6 +1496,7 @@ function createMainUi() {
         button.addEventListener('click', () => switchView(button.dataset.view));
     });
     panel.querySelector('#cv-close').addEventListener('click', closePanel);
+    panel.querySelector('#cv-quick-new').addEventListener('click', quickNewOutfit);
     makePanelDraggable();
     makePanelResizable();
     makeFloatingButtonDraggable();
