@@ -1074,3 +1074,40 @@
     .cv-field-card { padding-block: 4px; }
     .cv-hint { margin-top: 6px; }
 }
+
+/* Optional Roleplay Tools dock. Keep cvpanel container queries for narrow slots. */
+#rpt-shell #cv-panel[data-rpt-docked] {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    z-index: auto !important;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+#rpt-shell #cv-panel[data-rpt-docked]::before { display: none; }
+#rpt-shell #cv-header {
+    cursor: default;
+    touch-action: auto !important;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 7px 8px;
+    min-height: 44px;
+}
+#rpt-shell .cv-header-brand { flex: 1 1 150px; min-width: 0; }
+#rpt-shell #cv-title { font-size: 15px; overflow-wrap: anywhere; }
+#rpt-shell #cv-header-actions { margin-left: auto; gap: 4px; flex-wrap: wrap; }
+#rpt-shell #cv-content { flex: 1 1 auto; min-height: 0; padding: 9px; overflow-y: auto; }
+#rpt-shell #cv-close, #rpt-shell #cv-resize-handle { display: none !important; }
+#rpt-shell .rpt-collapsed #cv-content { display: none !important; }
+#rpt-shell .rpt-collapsed #cv-panel { container-type: inline-size; }
+@container cvpanel (max-width: 460px) {
+    #rpt-shell .cv-wardrobe-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #rpt-shell .cv-wardrobe-toolbar select,
+    #rpt-shell .cv-wardrobe-toolbar input { grid-column: 1 / -1; }
+}

@@ -5,6 +5,7 @@ import {
     cloneDefaultFields,
 } from './constants.js';
 import { createStorage } from './storage.js';
+import { isRoleplayDocked, registerRoleplayPanel } from './roleplay-tools-adapter.js';
 
 const DEFAULT_PANEL_SIZE = Object.freeze({ width: 900, height: 680 });
 const MIN_PANEL_SIZE = Object.freeze({ width: 320, height: 300 });
@@ -347,7 +348,7 @@ function setPreviewVisible(visible) {
     settings.previewVisible = visible;
     renderPanel();
 
-    if (panelVisible()) {
+    if (panelVisible() && !isRoleplayDocked(panel)) {
         const viewport = viewportSize();
         const maxWidth = Math.max(MIN_PANEL_SIZE.width, viewport.width - DRAG_EDGE * 2);
         const maxHeight = Math.max(MIN_PANEL_SIZE.height, viewport.height - DRAG_TOP - DRAG_EDGE);
@@ -1262,6 +1263,7 @@ function clampPanelPosition(left, top, width = panel.offsetWidth, height = panel
 }
 
 function applyPanelLayout(centered = false) {
+    if (isRoleplayDocked(panel)) return;
     const viewport = viewportSize();
     const savedSize = settings.panelSize || DEFAULT_PANEL_SIZE;
     const width = clamp(savedSize.width || DEFAULT_PANEL_SIZE.width, MIN_PANEL_SIZE.width, Math.max(MIN_PANEL_SIZE.width, viewport.width - DRAG_EDGE * 2));
@@ -1286,6 +1288,7 @@ function applyPanelLayout(centered = false) {
 }
 
 function openPanel(mode = 'floating') {
+    if (isRoleplayDocked(panel) && window.WaniRoleplayTools?.open('visual')) return;
     panel.style.display = 'flex';
     panel.dataset.openMode = mode;
     previewVisible = settings.previewVisible !== false;
@@ -1319,6 +1322,7 @@ function makePanelDraggable() {
     let baseTop = 0;
 
     handle.addEventListener('pointerdown', (event) => {
+        if (isRoleplayDocked(panel)) return;
         if (event.target.closest('button')) return;
         if (event.button != null && event.button !== 0) return;
         dragging = true;
@@ -1358,6 +1362,7 @@ function makePanelResizable() {
     let baseHeight = 0;
 
     handle.addEventListener('pointerdown', (event) => {
+        if (isRoleplayDocked(panel)) return;
         resizing = true;
         startX = event.clientX;
         startY = event.clientY;
@@ -1461,6 +1466,10 @@ function makeFloatingButtonDraggable() {
 
 function updateFloatingVisibility() {
     if (!floatingButton) return;
+    if (isRoleplayDocked(panel)) {
+        floatingButton.style.setProperty('display', 'none', 'important');
+        return;
+    }
     floatingButton.style.display = settings.showFloatingButton ? '' : 'none';
 }
 
@@ -1502,6 +1511,19 @@ function createMainUi() {
     makeFloatingButtonDraggable();
     positionFloatingButton();
     updateFloatingVisibility();
+
+    registerRoleplayPanel({
+        id: 'visual', title: 'Character Visual', minHeight: 260,
+        defaultPage: { id: 'character', name: 'Персонаж' },
+        element: panel, launcher: floatingButton,
+        controls: panel.querySelector('#cv-header-actions'),
+        onMount: renderPanel,
+        onShow: () => panel.querySelectorAll('textarea').forEach(autoSizeTextarea),
+        onRelease: () => {
+            updateFloatingVisibility();
+            if (panelVisible()) applyPanelLayout(panel.dataset.openMode === 'center');
+        },
+    });
 }
 
 function createMenuButton() {
